@@ -128,13 +128,47 @@ quando a aplicação subir.
 * `synchronize`: uma flag que define se as classes de entidades e as tabelas do
 banco devem estar sempre em acordância. **NÃO DEVE SER USADO TRUE EM PRODUÇÂO**.
 
-Além disso, foi adicionado um script no `package.json` para facilitar usar a
-`cli` do TypeOrm:
+Além disso, vamos criar um script no `package.json` para facilitar usar a `cli`
+do TypeOrm. Primeiro instalamos o `cross-env` como dependência de
+desenvolvimento para que possamos definir variáveis de ambiente nos scripts
+(independente de plataforma), e então iremos definir o `NODE_ENV=migration`
+no script do typeorm, assim todas as vezes que executarmos o typeorm usando o 
+`npm run` iremos ter um ambiente específico e podemos usar isso para definir 
+algumas configurações do TypeOrm.
+
+```
+npm install --save-dev cross-env
+```
+
+E no `package.json`:
 
 ```json
-"typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
-"migration:generate": "npm run typeorm migration:generate -- -n"
+"typeorm": "cross-env NODE_ENV=migration node --require ts-node/register ./node_modules/typeorm/cli.js",
+"migration:generate": "npm run typeorm migration:generate -- -n",
+"migrations": "npm run typeorm migration:run"
 ```
+
+Após isso, vamos voltar ao `ormconfig.ts` e adicionar um função que define o
+diretório de entidades a partir de `NODE_ENV` atual, isso é útil para que
+possamos executar a `cli` do TypeOrm usando os arquivos `*.ts` em `src` (sem
+precisar de um `build` da aplicação).
+
+```ts
+// ormconfig.ts
+
+function getEntitiesDir(): string {
+  const ext = process.env.NODE_ENV === 'migration' ? 'ts':'js';
+  const basePath = process.env.NODE_ENV === 'migration' ? __dirname:'dist';
+  return path.join(basePath, 'src', '**', 'entities', `entity.${ext}`);
+}
+
+module.exports = {
+  // ...
+  entities: [getEntitiesDir()],
+  // ...
+};
+```
+
 O `TypeOrmModule` deve ser importado no `AppModule` (ou em outro módulo que você
 queira que mantenha a conexão com o banco de dados). Então, no arquivo
 `app.module.ts`, adicione o `TypeOrmModule` no campo de _imports_ do decorator.
@@ -174,6 +208,54 @@ chamar de `tasks`. Podemos criar algumas classes usando a CLI do Nest:
 nest g module tasks
 nest g controller tasks
 nest g service tasks
+```
+
+Dado que temos todas as classes relacionadas a Tasks (`TasksModule`,
+`TasksController`, `TasksService`), vamos criar a nossa primeira entidade.
+No diretório `src/tasks` que foi criado pelo Nest, foi criado um subdiretório
+`entities` com o arquivo `task.entity.ts` que terá a classe que representa a
+nossa entidade de tarefa.
+
+Uma versão simples (inicial) da entidade Task:
+
+```ts
+@Entity()
+export class Task {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ length: 128 })
+  description: string;
+
+  @Column({ length: 32 })
+  owner: string;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+}
+```
+
+Depois adicione essa classe na importação do TypeOrm no `TasksModule`.
+
+```ts
+// tasks.module.ts
+// ...
+imports: [TypeOrmModule.forFeature([Task])],
+// ...
+```
+
+Com isso em mão temos que gerar uma migration para que quando a aplicação for
+inciada ela faça as alterações no banco de dados. Para criar uma migration,
+usamos a CLI do TypeOrm através do script `migration:generate` que criamos no
+`package.json`.
+
+Depois de ter criado a entidade, use:
+
+```
+npm run migration:generate CreateTableTask
 ```
 
 
