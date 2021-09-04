@@ -60,6 +60,21 @@ Docker e Docker Compose. Foi criado um arquivo de configuração do Compose
 Dessa forma, é possui subir um banco de dados vazio com um simples
 `docker-compose up`.
 
+O conteúdo do `docker-compose.yml` inicial:
+
+```yaml
+version: '3'
+services:
+  school_db:
+    image: postgres
+    environment:
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nestschool
+    ports:
+      - 5432:5432
+```
+
 ### TypeORM
 
 Tendo um meio de subir um banco de dados, vamos configurar o TypeOrm.
