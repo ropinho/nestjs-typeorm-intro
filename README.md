@@ -165,6 +165,17 @@ npm run build
 npm start
 ```
 
+### Entidades e Migrations
+
+Nessa aplicação de exemplo vamos criar uma API REST para tarefas que vamos
+chamar de `tasks`. Podemos criar algumas classes usando a CLI do Nest:
+
+```
+nest g module tasks
+nest g controller tasks
+nest g service tasks
+```
+
 
 ## License
 
