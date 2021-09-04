@@ -22,51 +22,134 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+## Descrição
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Esse projeto demonstra o uso do Framework [Nest](https://nestjs.com/) em
+conjunto com o Postgres e TypeOrm. Abaixo seguem alguns passos usados na
+configurações deste projeto.
 
-## Installation
+## Instalação do Nest
 
-```bash
-$ npm install
+Inicialmente, atualize o NPM ou o Yarn e então instale o Nest globalmente na sua
+máquina.
+
+```
+npm i -g nestjs
 ```
 
-## Running the app
+Agora o binário `nest` está instalado localmente e pode ser usado para gerar um
+projeto inicial do Nest, usando o seguinte comando (substituindo o
+`meu-projeto-nest` pelo nome do seu projeto).
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+nest new meu-projeto-nest
 ```
 
-## Test
+## Configurações iniciais do projeto
 
-```bash
-# unit tests
-$ npm run test
+Por padrão o projeto criado possui algumas classes definidas com o nome de App
+(`AppModule`, `AppService`, `AppController`). É possível executar a aplicação
+que possui um endpoint que retorna um "Hello, World". Para eceutar a aplicação
+em modo _watching_ use `npm run start:dev`.
 
-# e2e tests
-$ npm run test:e2e
+### Container com o Postgres
 
-# test coverage
-$ npm run test:cov
+Para automatizar a execução de um servidor SGBD do PostgreSQL, foi usado aqui o
+Docker e Docker Compose. Foi criado um arquivo de configuração do Compose
+(`docker-compose.yml`) contendo somente as definições de um serviço do postgres.
+Dessa forma, é possui subir um banco de dados vazio com um simples
+`docker-compose up`.
+
+### TypeORM
+
+Tendo um meio de subir um banco de dados, vamos configurar o TypeOrm.
+
+O Nest já fornece uma boa integração com o TypeOrm através de um pacote que
+fornece um `TypeOrmModule`, então, instale-o junto com o próprio TypeOrm e o
+pacote do Postgres:
+
+```
+npm i @nestjs/typeorm typeorm pg
 ```
 
-## Support
+O TypeOrm usa um arquivo de configuração para a conexão com o banco de dados
+chamado de `ormconfig`. Aqui, como estamos usando TypeScript (usado pelo Nest
+por padrão) criamos um `ormconfig.ts` com o seguinte conteúdo:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```ts
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const path = require('path');
 
-## Stay in touch
+module.exports = {
+  type: 'postgres',
+  host: 'localhost',
+  port: 5432,
+  username: 'postgres',
+  password: 'postgres',
+  database: 'nesttestdb',
+  entities: [path.join(__dirname, 'src', '**', '*.entity.{ts,js}')],
+  migrationsRun: true,
+  cli: {
+    migrationsDir: path.join('src', 'migrations'),
+  },
+  synchronize: true,
+};
+```
+Esses são os campos básico de uma conexão de banco de dados usada na maioria dos
+drivers de database do Node, então vamos atentar para alguns campos específicos:
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+* `entities`: uma lista de strings definindo os caminhos ondes estarão os
+arquivos de entidades do banco de dados. Foi usado o `path.join` para gerar a
+string de caminho independente de sistema de arquivos e o `__dirname` foi usado
+aqui para que seja possível encontrar o diretório tanto nos arquivos TypeScript
+quanto nos arquivos gerados pelo compando `build` que são criados no diretório
+`./dist`.
+
+* `migrationsRus`: uma flag que define se as _migrations_ devem ser executadas
+quando a aplicação subir.
+
+* `cli.migrationsDir`: diretório onde devem ser criadas as migrations.
+
+* `synchronize`: uma flag que define se as classes de entidades e as tabelas do
+banco devem estar sempre em acordância. **NÃO DEVE SER USADO TRUE EM PRODUÇÂO**.
+
+Além disso, foi adicionado um script no `package.json` para facilitar usar a
+`cli` do TypeOrm:
+
+```json
+"typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
+"migration:generate": "npm run typeorm migration:generate -- -n"
+```
+O `TypeOrmModule` deve ser importado no `AppModule` (ou em outro módulo que você
+queira que mantenha a conexão com o banco de dados). Então, no arquivo
+`app.module.ts`, adicione o `TypeOrmModule` no campo de _imports_ do decorator.
+
+```ts
+//...
+
+@Module({
+  imports: [TypeOrmModule.forRoot()],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+Com isso a conexão com o banco de dados deve estar configurada, você pode testar
+subindo o container do Postgres e então subindo a aplicação logo depois:
+
+```
+docker-compose up
+npm run start:dev
+```
+
+e pode testar com a build da aplicação:
+
+```
+docker-compose up
+npm run build
+npm start
+```
+
 
 ## License
 
