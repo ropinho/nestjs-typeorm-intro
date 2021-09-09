@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const join = require('path').join;
+const path = require('path');
 
 /**
  * Define o diretório de entidades dinamicamente a partir do NODE_ENV, que deve
@@ -10,26 +10,43 @@ const join = require('path').join;
  *
  * @returns caminho de diretório das entidades
  */
-function getEntitiesDir(): string {
+function getEntitiesDir() {
   if (process.env.NODE_ENV === 'migration') {
-    return join(__dirname, 'src', '**', 'entities', '*.entity.ts');
+    return path.join(__dirname, 'src', '**', 'entities', '*.entity.ts');
   } else {
-    return join('dist', 'src', '**', 'entities', '*.entity.js');
+    return path.join('dist', 'src', '**', 'entities', '*.entity.js');
   }
 }
 console.log(`Entidades em ${getEntitiesDir()}`);
 
-module.exports = {
-  type: 'postgres',
-  host: 'localhost',
-  port: 5432,
-  username: 'postgres',
-  password: 'postgres',
-  database: 'postgres',
-  entities: [getEntitiesDir()],
-  migrationsRun: true,
-  cli: {
-    migrationsDir: join('src', 'migrations'),
+module.exports = [
+  {
+    type: 'postgres',
+    host: 'localhost',
+    port: 5431,
+    username: 'postgres',
+    password: 'postgres',
+    database: 'nestintro_db_1',
+    entities: [getEntitiesDir()],
+    migrationsRun: true,
+    synchronize: false,
+    cli: {
+      migrationsDir: path.join('src', 'migrations'),
+    },
   },
-  synchronize: true,
-};
+  {
+    name: 'albumsConnection',
+    type: 'postgres',
+    host: 'localhost',
+    port: 5432,
+    username: 'postgres',
+    password: 'postgres',
+    database: 'nestintro_db_2',
+    entities: ['dist/src/albums/entities/*.entity.js'],
+    migrationsRun: true,
+    synchronize: false,
+    cli: {
+      migrationsDir: path.join('src', 'albums', 'migrations'),
+    },
+  },
+];
